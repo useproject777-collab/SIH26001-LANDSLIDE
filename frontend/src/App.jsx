@@ -247,15 +247,15 @@ function App() {
       });
 
       // Desktop/browser location can sometimes be very inaccurate.
-      if (accuracy > 5000) {
-        setBusy(false);
-        setError(
-          `Location accuracy is too low (${(accuracy / 1000).toFixed(
-            1
-          )} km). Please enable Windows Location Services or search your city instead.`
-        );
-        return;
-      }
+      if (accuracy > 50000) {
+  setBusy(false);
+  setError(
+    `⚠️ Your browser could not determine your precise location (accuracy ±${(
+      accuracy / 1000
+    ).toFixed(1)} km). Please enable Windows Location Services or search your city.`
+  );
+  return;
+}
 
       runRiskForCoordinates(
         latitude,
