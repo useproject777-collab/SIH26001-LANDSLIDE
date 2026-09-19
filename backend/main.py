@@ -1,24 +1,18 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
-from .database import get_db, initialize_database
-
-from .models import Location
-
-from .risk import calculate_risk
-
-from .terrain import get_terrain_profile, get_terrain_profiles_batch
-
-from .weather import get_live_weather, get_live_weather_batch
-
-from .ml_service import get_model_status, predict_experimental, train_model
-
-from .satellite import satellite_layer_config
+from database import get_db, initialize_database
+from models import Location
+from risk import calculate_risk
+from terrain import get_terrain_profile, get_terrain_profiles_batch
+from weather import get_live_weather, get_live_weather_batch
+from ml_service import get_model_status, predict_experimental, train_model
+from satellite import satellite_layer_config
 app = FastAPI(
     title="NER Landslide Early Warning System",
     description="AI-Based Landslide Risk Monitoring System",
