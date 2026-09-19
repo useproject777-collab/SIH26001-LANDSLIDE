@@ -1,7 +1,6 @@
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text
 
-from database import Base
-
+from .database import Base
 
 class Location(Base):
     __tablename__ = "locations"
