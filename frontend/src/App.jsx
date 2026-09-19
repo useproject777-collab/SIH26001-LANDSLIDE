@@ -227,28 +227,70 @@ function App() {
     setSearchQuery(label);
   };
 
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by this browser.");
-      return;
-    }
-    setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        runRiskForCoordinates(coords.latitude, coords.longitude, "My Current Location")
-          .finally(() => setBusy(false));
-      },
-      (geoError) => {
+ const useCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    setError("Geolocation is not supported by this browser.");
+    return;
+  }
+
+  setBusy(true);
+  setError("");
+
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      const { latitude, longitude, accuracy } = coords;
+
+      console.log("Browser location:", {
+        latitude,
+        longitude,
+        accuracy_m: accuracy,
+      });
+
+      // Desktop/browser location can sometimes be very inaccurate.
+      if (accuracy > 5000) {
         setBusy(false);
         setError(
-          geoError.code === 1
-            ? "Location permission was denied. Please allow location access."
-            : "Unable to get the current location."
+          `Location accuracy is too low (${(accuracy / 1000).toFixed(
+            1
+          )} km). Please enable Windows Location Services or search your city instead.`
         );
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
-    );
-  };
+        return;
+      }
+
+      runRiskForCoordinates(
+        latitude,
+        longitude,
+        `My Current Location (±${Math.round(accuracy)} m)`
+      ).finally(() => setBusy(false));
+    },
+
+    (geoError) => {
+      setBusy(false);
+
+      if (geoError.code === 1) {
+        setError(
+          "Location permission was denied. Please allow location access."
+        );
+      } else if (geoError.code === 2) {
+        setError(
+          "Current location is unavailable. Please enable Windows Location Services."
+        );
+      } else if (geoError.code === 3) {
+        setError(
+          "Location request timed out. Please try again."
+        );
+      } else {
+        setError("Unable to get the current location.");
+      }
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 30000,
+      maximumAge: 0,
+    }
+  );
+};
 
   const acknowledgeAlert = async (id) => {
     try {
