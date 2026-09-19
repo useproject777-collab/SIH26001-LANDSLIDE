@@ -227,7 +227,7 @@ function App() {
     setSearchQuery(label);
   };
 
- const useCurrentLocation = () => {
+const useCurrentLocation = () => {
   if (!navigator.geolocation) {
     setError("Geolocation is not supported by this browser.");
     return;
@@ -238,30 +238,18 @@ function App() {
 
   navigator.geolocation.getCurrentPosition(
     ({ coords }) => {
-      const { latitude, longitude, accuracy } = coords;
+      const { latitude, longitude } = coords;
 
-      console.log("Browser location:", {
-        latitude,
-        longitude,
-        accuracy_m: accuracy,
-      });
-
-      // Desktop/browser location can sometimes be very inaccurate.
-      if (accuracy > 50000) {
-  setBusy(false);
-  setError(
-    `⚠️ Your browser could not determine your precise location (accuracy ±${(
-      accuracy / 1000
-    ).toFixed(1)} km). Please enable Windows Location Services or search your city.`
-  );
-  return;
-}
+      console.log("Current location:", latitude, longitude);
+      console.log("Location accuracy:", coords.accuracy, "meters");
 
       runRiskForCoordinates(
         latitude,
         longitude,
-        `My Current Location (±${Math.round(accuracy)} m)`
-      ).finally(() => setBusy(false));
+        "My Current Location"
+      ).finally(() => {
+        setBusy(false);
+      });
     },
 
     (geoError) => {
@@ -269,18 +257,12 @@ function App() {
 
       if (geoError.code === 1) {
         setError(
-          "Location permission was denied. Please allow location access."
-        );
-      } else if (geoError.code === 2) {
-        setError(
-          "Current location is unavailable. Please enable Windows Location Services."
-        );
-      } else if (geoError.code === 3) {
-        setError(
-          "Location request timed out. Please try again."
+          "Please allow location permission in your browser."
         );
       } else {
-        setError("Unable to get the current location.");
+        setError(
+          "Unable to get your current location. Please try again."
+        );
       }
     },
 
@@ -291,7 +273,6 @@ function App() {
     }
   );
 };
-
   const acknowledgeAlert = async (id) => {
     try {
       await apiPost(`/api/alerts/${id}/acknowledge`);
@@ -400,7 +381,7 @@ function App() {
           </div>
         </header>
 
-        {error && <div className="error-banner">⚠️ {error}</div>}
+        {error && <div className="error-banner">{error}</div>}
 
         <section className="control-panel">
           <div className="search-row">
