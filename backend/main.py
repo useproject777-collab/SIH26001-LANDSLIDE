@@ -949,3 +949,26 @@ def ingest_sensor(
           "soil_moisture": soil_moisture, "vibration": vibration, "battery_percent": battery_percent})
     db.commit()
     return {"status": "accepted", "sensor_id": sensor_id, "location_id": location_id}
+@app.post("/api/auth/register")
+def register_user(
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    # Check if user already exists
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create new user
+    hashed_password = hash_value(password)
+    user = User(username=username, email=email, hashed_password=hashed_password)
+    db.add(user)
+    db.commit()
+    return {"status": "created", "user_id": user.id}
+@app.get("/api/auth/me")
+def get_current_user(auth=Depends(require_auth), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == auth["user_id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user.id, "username": user.username, "email": user.email}
