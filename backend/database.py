@@ -178,6 +178,53 @@ def initialize_database() -> None:
         "CREATE INDEX IF NOT EXISTS idx_risk_history_location_time ON risk_history(location_id, recorded_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_weather_location_time ON weather_observations(location_id, recorded_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_alerts_status_time ON alerts(status, created_at DESC)",
+        """
+        CREATE TABLE IF NOT EXISTS citizen_reports (
+            id SERIAL PRIMARY KEY,
+            reporter_name VARCHAR(120),
+            report_type VARCHAR(40) NOT NULL DEFAULT 'OBSERVATION',
+            description TEXT NOT NULL,
+            latitude DOUBLE PRECISION NOT NULL,
+            longitude DOUBLE PRECISION NOT NULL,
+            location_name VARCHAR(200),
+            media_data BYTEA,
+            media_content_type VARCHAR(100),
+            media_filename VARCHAR(255),
+            status VARCHAR(30) NOT NULL DEFAULT 'SUBMITTED',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS road_reports (
+            id SERIAL PRIMARY KEY,
+            road_name VARCHAR(250) NOT NULL,
+            status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+            description TEXT,
+            latitude DOUBLE PRECISION NOT NULL,
+            longitude DOUBLE PRECISION NOT NULL,
+            reported_by VARCHAR(120),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS sensor_observations (
+            id SERIAL PRIMARY KEY,
+            location_id INTEGER REFERENCES locations(id),
+            sensor_id VARCHAR(100) NOT NULL,
+            soil_moisture DOUBLE PRECISION,
+            vibration DOUBLE PRECISION,
+            battery_percent DOUBLE PRECISION,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_citizen_reports_time ON citizen_reports(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_road_reports_time ON road_reports(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_sensor_location_time ON sensor_observations(location_id, recorded_at DESC)",
+        """CREATE TABLE IF NOT EXISTS app_users (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, email VARCHAR(320) UNIQUE NOT NULL, phone VARCHAR(30), aadhaar_hash VARCHAR(64), email_verified BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS email_otps (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE, purpose VARCHAR(30) NOT NULL, otp_hash VARCHAR(64) NOT NULL, expires_at TIMESTAMP NOT NULL, used BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """ALTER TABLE citizen_reports ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES app_users(id)""",
+        """CREATE TABLE IF NOT EXISTS warning_email_log (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE, risk_level VARCHAR(20) NOT NULL, location_name VARCHAR(200), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        "CREATE INDEX IF NOT EXISTS idx_warning_email_user_time ON warning_email_log(user_id, created_at DESC)",
     ]
 
     with engine.begin() as conn:

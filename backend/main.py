@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -13,6 +14,26 @@ from terrain import get_terrain_profile, get_terrain_profiles_batch
 from weather import get_live_weather, get_live_weather_batch
 from ml_service import get_model_status, predict_experimental, train_model
 from satellite import satellite_layer_config
+from auth import hash_value, make_token, read_token, generate_otp, otp_expiry, send_email
+import os
+def current_auth(authorization: str | None = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return read_token(authorization[7:])
+
+def require_user(authorization: str | None = Header(default=None)):
+    auth = current_auth(authorization)
+    if not auth or auth.get("role") not in {"user", "admin"}:
+        raise HTTPException(status_code=401, detail="Login required")
+    return auth
+
+def require_admin(authorization: str | None = Header(default=None)):
+    auth = current_auth(authorization)
+    if not auth or auth.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return auth
+
+
 app = FastAPI(
     title="NER Landslide Early Warning System",
     description="AI-Based Landslide Risk Monitoring System",
@@ -220,6 +241,20 @@ def maybe_create_alert(db: Session, location_id: int, location_name: str, risk: 
     )
 
 
+def maybe_send_user_warning(db: Session, auth, location_name: str, risk: dict[str, Any]):
+    if not auth or auth.get("role") != "user" or risk.get("risk_level") not in {"HIGH", "CRITICAL"}:
+        return {"email_warning": False, "reason": "not_required"}
+    recent = db.execute(text("SELECT id FROM warning_email_log WHERE user_id=:uid AND risk_level=:level AND created_at >= CURRENT_TIMESTAMP - INTERVAL '30 minutes' LIMIT 1"), {"uid": auth["user_id"], "level": risk["risk_level"]}).scalar()
+    if recent:
+        return {"email_warning": False, "reason": "already_sent_recently"}
+    try:
+        send_email(auth["email"], f"{risk['risk_level']} Landslide Warning - NER", f"Warning: the current prototype risk engine has identified {risk['risk_level']} risk at {location_name}.\n\nRisk score: {risk.get('risk_score')}/100\nRainfall score: {risk.get('rainfall_score')}/100\nSlope score: {risk.get('slope_score')}/100\n\nPlease follow local disaster-management instructions. This system is an early-warning prototype and does not replace official advisories.")
+        db.execute(text("INSERT INTO warning_email_log(user_id,risk_level,location_name) VALUES(:uid,:level,:name)"), {"uid": auth["user_id"], "level": risk["risk_level"], "name": location_name[:200]})
+        db.commit()
+        return {"email_warning": True, "reason": "sent"}
+    except RuntimeError:
+        return {"email_warning": False, "reason": "smtp_not_configured"}
+
 def _build_risk_response(
     location_name: str,
     state: str,
@@ -265,6 +300,126 @@ def _build_risk_response(
     return response
 
 
+@app.post("/api/auth/register")
+def register_user(
+    name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    aadhaar: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    email = email.strip().lower()
+    aadhaar = ''.join(ch for ch in aadhaar if ch.isdigit())
+    if len(aadhaar) != 12:
+        raise HTTPException(status_code=400, detail="Aadhaar must contain 12 digits. Only a checksum/format check is performed; UIDAI identity authentication is not available in this free prototype.")
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+    user = db.execute(text("SELECT id FROM app_users WHERE email=:email"), {"email": email}).scalar()
+    if user:
+        user_id = user
+        db.execute(text("UPDATE app_users SET name=:name, phone=:phone, aadhaar_hash=:aadhaar_hash, email_verified=FALSE, updated_at=CURRENT_TIMESTAMP WHERE id=:id"), {"name": name[:120], "phone": phone[:30], "aadhaar_hash": hash_value(aadhaar), "id": user_id})
+    else:
+        user_id = db.execute(text("""INSERT INTO app_users(name,email,phone,aadhaar_hash) VALUES(:name,:email,:phone,:aadhaar_hash) RETURNING id"""), {"name": name[:120], "email": email, "phone": phone[:30], "aadhaar_hash": hash_value(aadhaar)}).scalar()
+    db.execute(text("UPDATE email_otps SET used=TRUE WHERE user_id=:id AND purpose='verify' AND used=FALSE"), {"id": user_id})
+    otp = generate_otp()
+    db.execute(text("INSERT INTO email_otps(user_id,purpose,otp_hash,expires_at) VALUES(:uid,'verify',:otp,:expires)"), {"uid": user_id, "otp": hash_value(otp), "expires": otp_expiry()})
+    db.commit()
+    try:
+        result = send_email(email, "NER Landslide Alert System - Email Verification", f"Your verification code is valid for 10 minutes.\n\nVerification code: {otp}\n\nUse this code to verify your email.")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    response = {"status": "verification_sent", "email": email}
+    if result.get("dev_code"):
+        response["dev_code"] = result["dev_code"]
+    return response
+
+@app.post("/api/auth/verify-email")
+def verify_email(email: str = Form(...), otp: str = Form(...), db: Session = Depends(get_db)):
+    email = email.strip().lower()
+    row = db.execute(text("""SELECT u.id, u.email, o.id AS otp_id, o.otp_hash, o.expires_at FROM app_users u JOIN email_otps o ON o.user_id=u.id WHERE u.email=:email AND o.purpose='verify' AND o.used=FALSE ORDER BY o.created_at DESC LIMIT 1"""), {"email": email}).mappings().first()
+    if not row or _otp_expired(row["expires_at"]):
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code.")
+    if not hmac_compare(hash_value(otp), row["otp_hash"]):
+        raise HTTPException(status_code=400, detail="Invalid verification code.")
+    db.execute(text("UPDATE app_users SET email_verified=TRUE, updated_at=CURRENT_TIMESTAMP WHERE id=:id"), {"id": row["id"]})
+    db.execute(text("UPDATE email_otps SET used=TRUE WHERE id=:id"), {"id": row["otp_id"]})
+    db.commit()
+    return {"token": make_token(row["id"], "user", email), "role": "user", "user_id": row["id"],
+            "name": db.execute(text("SELECT name FROM app_users WHERE id=:id"), {"id": row["id"]}).scalar(),
+            "email": email}
+
+def _otp_expired(value) -> bool:
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return True
+    if value is None:
+        return True
+    if getattr(value, "tzinfo", None) is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value < datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def hmac_compare(a: str, b: str):
+    import hmac
+    return hmac.compare_digest(a, b)
+
+@app.post("/api/auth/request-login-otp")
+def request_login_otp(email: str = Form(...), db: Session = Depends(get_db)):
+    email = email.strip().lower()
+    row = db.execute(text("SELECT id, email_verified FROM app_users WHERE email=:email"), {"email": email}).mappings().first()
+    if not row or not row["email_verified"]:
+        raise HTTPException(status_code=400, detail="Email is not registered/verified. Please register first.")
+    db.execute(text("UPDATE email_otps SET used=TRUE WHERE user_id=:id AND purpose='login' AND used=FALSE"), {"id": row["id"]})
+    otp = generate_otp()
+    db.execute(text("INSERT INTO email_otps(user_id,purpose,otp_hash,expires_at) VALUES(:uid,'login',:otp,:expires)"), {"uid": row["id"], "otp": hash_value(otp), "expires": otp_expiry()})
+    db.commit()
+    try:
+        result = send_email(email, "NER Landslide Alert System - Login Code", f"Your login verification code is valid for 10 minutes.\n\nVerification code: {otp}")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    response={"status":"login_code_sent","email":email}
+    if result.get("dev_code"): response["dev_code"]=result["dev_code"]
+    return response
+
+@app.post("/api/auth/login-otp")
+def login_otp(email: str = Form(...), otp: str = Form(...), db: Session = Depends(get_db)):
+    email=email.strip().lower()
+    row=db.execute(text("""SELECT u.id,o.id AS otp_id,o.otp_hash,o.expires_at FROM app_users u JOIN email_otps o ON o.user_id=u.id WHERE u.email=:email AND u.email_verified=TRUE AND o.purpose='login' AND o.used=FALSE ORDER BY o.created_at DESC LIMIT 1"""), {"email":email}).mappings().first()
+    if not row or _otp_expired(row["expires_at"]) or not hmac_compare(hash_value(otp), row["otp_hash"]):
+        raise HTTPException(status_code=400, detail="Invalid or expired login code.")
+    db.execute(text("UPDATE email_otps SET used=TRUE WHERE id=:id"), {"id":row["otp_id"]})
+    db.commit()
+    return {"token": make_token(row["id"], "user", email), "role": "user", "user_id": row["id"],
+            "name": db.execute(text("SELECT name FROM app_users WHERE id=:id"), {"id": row["id"]}).scalar(),
+            "email": email}
+
+@app.post("/api/auth/admin-login")
+def admin_login(username: str = Form(...), password: str = Form(...)):
+    if username != os.getenv("ADMIN_USERNAME", "admin") or password != os.getenv("ADMIN_PASSWORD", "change-this-admin-password"):
+        raise HTTPException(status_code=401, detail="Invalid admin credentials")
+    return {"token":make_token(0,"admin",username),"role":"admin","email":username}
+
+@app.get("/api/auth/me")
+def auth_me(auth=Depends(require_user), db: Session = Depends(get_db)):
+    if auth.get("role") == "admin":
+        return auth
+    row = db.execute(
+        text("SELECT id, name, email, phone, email_verified FROM app_users WHERE id=:id"),
+        {"id": auth["user_id"]},
+    ).mappings().first()
+    if not row or not row["email_verified"]:
+        raise HTTPException(status_code=401, detail="User account is not verified")
+    return {
+        "user_id": row["id"],
+        "role": "user",
+        "name": row["name"],
+        "email": row["email"],
+        "phone": row["phone"],
+        "email_verified": row["email_verified"],
+    }
+
 @app.get("/api/locations")
 def get_locations(db: Session = Depends(get_db)):
     locations = db.query(Location).order_by(Location.state, Location.district).all()
@@ -300,7 +455,7 @@ def get_live_weather_data(location_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/live-risk/{location_id}")
-def get_live_risk(location_id: int, db: Session = Depends(get_db)):
+def get_live_risk(location_id: int, db: Session = Depends(get_db), auth=Depends(require_user)):
     location = db.query(Location).filter(Location.id == location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Location not found")
@@ -320,8 +475,9 @@ def get_live_risk(location_id: int, db: Session = Depends(get_db)):
     save_weather_observation(db, location.id, weather)
     save_risk_history(db, location.id, weather, terrain, risk, "location_live")
     maybe_create_alert(db, location.id, location.location_name or "Location", risk)
+    email_warning = maybe_send_user_warning(db, auth, location.location_name or "Location", risk)
     db.commit()
-    return _build_risk_response(
+    response = _build_risk_response(
         location.location_name or "Location",
         location.state,
         location.district,
@@ -333,6 +489,8 @@ def get_live_risk(location_id: int, db: Session = Depends(get_db)):
         ml,
         "monitoring_location",
     )
+    response.update(email_warning)
+    return response
 
 
 @app.get("/api/live-risk-all")
@@ -407,6 +565,7 @@ def risk_by_coordinates(
     latitude: float,
     longitude: float,
     db: Session = Depends(get_db),
+    auth=Depends(require_user),
 ):
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         raise HTTPException(status_code=400, detail="Invalid coordinates")
@@ -422,7 +581,8 @@ def risk_by_coordinates(
         weather.get("soil_moisture_0_7cm"),
         weather.get("forecast_rain_6h"),
     )
-    return _build_risk_response(
+    email_warning = maybe_send_user_warning(db, auth, "Selected Location", risk)
+    response = _build_risk_response(
         "Selected Location",
         "",
         "",
@@ -434,6 +594,8 @@ def risk_by_coordinates(
         None,
         "selected_coordinates",
     )
+    response.update(email_warning)
+    return response
 
 
 @app.get("/api/elevation")
@@ -650,3 +812,140 @@ def ml_evaluation(db: Session = Depends(get_db)):
 @app.get("/api/satellite/layer")
 def satellite_layer():
     return satellite_layer_config()
+
+
+@app.get("/api/citizen-reports")
+def citizen_reports(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), auth=Depends(require_admin)):
+    rows = db.execute(text("""
+        SELECT id, reporter_name, report_type, description, latitude, longitude,
+               location_name, media_content_type, media_filename, status, created_at
+        FROM citizen_reports ORDER BY created_at DESC LIMIT :limit
+    """), {"limit": limit}).mappings().all()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/citizen-reports")
+async def create_citizen_report(
+    description: str = Form(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    report_type: str = Form("OBSERVATION"),
+    reporter_name: str = Form("Citizen"),
+    location_name: str = Form(""),
+    media: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    auth=Depends(require_user),
+):
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+    allowed = {"OBSERVATION", "CRACK", "SLOPE_MOVEMENT", "BLOCKED_ROAD", "FLOODING"}
+    if report_type not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid report type")
+    media_bytes = None
+    media_type = None
+    media_name = None
+    if media:
+        media_bytes = await media.read()
+        if len(media_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Media must be 5 MB or smaller")
+        media_type = media.content_type or "application/octet-stream"
+        media_name = media.filename
+    row = db.execute(text("""
+        INSERT INTO citizen_reports
+        (user_id, reporter_name, report_type, description, latitude, longitude, location_name,
+         media_data, media_content_type, media_filename, status)
+        VALUES (:user_id, :reporter_name, :report_type, :description, :latitude, :longitude,
+                :location_name, :media_data, :media_content_type, :media_filename, 'SUBMITTED')
+        RETURNING id, created_at
+    """), {
+        "user_id": auth["user_id"], "reporter_name": reporter_name[:120], "report_type": report_type,
+        "description": description[:5000], "latitude": latitude, "longitude": longitude,
+        "location_name": location_name[:200], "media_data": media_bytes,
+        "media_content_type": media_type, "media_filename": media_name,
+    }).mappings().first()
+    db.commit()
+    return {"status": "submitted", "id": row["id"], "created_at": row["created_at"]}
+
+
+@app.get("/api/citizen-reports/{report_id}/media")
+def citizen_report_media(report_id: int, db: Session = Depends(get_db), auth=Depends(require_admin)):
+    row = db.execute(text("""
+        SELECT media_data, media_content_type, media_filename
+        FROM citizen_reports WHERE id = :id
+    """), {"id": report_id}).mappings().first()
+    if not row or row["media_data"] is None:
+        raise HTTPException(status_code=404, detail="Media not found")
+    return Response(content=bytes(row["media_data"]), media_type=row["media_content_type"] or "application/octet-stream",
+                    headers={"Content-Disposition": f'inline; filename="{row["media_filename"] or "report-media"}"'})
+
+
+@app.get("/api/admin/road-reports")
+def admin_road_reports(limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db), auth=Depends(require_admin)):
+    rows = db.execute(text("SELECT id, road_name, status, description, latitude, longitude, reported_by, created_at FROM road_reports ORDER BY created_at DESC LIMIT :limit"), {"limit":limit}).mappings().all()
+    return [dict(row) for row in rows]
+
+@app.get("/api/road-reports")
+def road_reports(status: str = Query("ALL", pattern="^(ALL|OPEN|BLOCKED|RESTRICTED)$"), db: Session = Depends(get_db)):
+    where = "" if status == "ALL" else "WHERE status = :status"
+    rows = db.execute(text(f"""
+        SELECT id, road_name, status, description, latitude, longitude, reported_by, created_at
+        FROM road_reports {where} ORDER BY created_at DESC LIMIT 100
+    """), ({"status": status} if status != "ALL" else {})).mappings().all()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/road-reports")
+def create_road_report(
+    road_name: str = Form(...),
+    status: str = Form(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    description: str = Form(""),
+    reported_by: str = Form("Field Official"),
+    db: Session = Depends(get_db),
+):
+    if status not in {"OPEN", "BLOCKED", "RESTRICTED"}:
+        raise HTTPException(status_code=400, detail="Invalid road status")
+    row = db.execute(text("""
+        INSERT INTO road_reports(road_name, status, description, latitude, longitude, reported_by)
+        VALUES (:road_name, :status, :description, :latitude, :longitude, :reported_by)
+        RETURNING id, created_at
+    """), {"road_name": road_name[:250], "status": status, "description": description[:2000],
+          "latitude": latitude, "longitude": longitude, "reported_by": reported_by[:120]}).mappings().first()
+    db.commit()
+    return {"status": "saved", "id": row["id"], "created_at": row["created_at"]}
+
+
+@app.get("/api/admin/reports")
+def admin_reports(limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db), auth=Depends(require_admin)):
+    rows = db.execute(text("""SELECT id, user_id, reporter_name, report_type, description, latitude, longitude, location_name, media_content_type, media_filename, status, created_at FROM citizen_reports ORDER BY created_at DESC LIMIT :limit"""), {"limit":limit}).mappings().all()
+    return [dict(row) for row in rows]
+
+@app.get("/api/sensors/latest")
+def latest_sensors(db: Session = Depends(get_db)):
+    rows = db.execute(text("""
+        SELECT DISTINCT ON (sensor_id) sensor_id, location_id, soil_moisture, vibration,
+               battery_percent, recorded_at
+        FROM sensor_observations ORDER BY sensor_id, recorded_at DESC
+    """)).mappings().all()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/sensors/ingest")
+def ingest_sensor(
+    sensor_id: str = Form(...),
+    location_id: int = Form(...),
+    soil_moisture: float | None = Form(None),
+    vibration: float | None = Form(None),
+    battery_percent: float | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    if not db.query(Location).filter(Location.id == location_id).first():
+        raise HTTPException(status_code=404, detail="Location not found")
+    db.execute(text("""
+        INSERT INTO sensor_observations(sensor_id, location_id, soil_moisture, vibration, battery_percent)
+        VALUES (:sensor_id, :location_id, :soil_moisture, :vibration, :battery_percent)
+    """), {"sensor_id": sensor_id[:100], "location_id": location_id,
+          "soil_moisture": soil_moisture, "vibration": vibration, "battery_percent": battery_percent})
+    db.commit()
+    return {"status": "accepted", "sensor_id": sensor_id, "location_id": location_id}

@@ -1,68 +1,49 @@
-# Quick Start (Windows)
+# Windows Quick Start - SIH26001
 
-## Terminal 0 — PostgreSQL
-Make sure the PostgreSQL 18 service is running and pgAdmin can connect.
-
-Create the database once:
-
-```sql
-CREATE DATABASE landslide_db;
-```
-
-## Terminal 1 — Backend
+## Backend
 
 ```cmd
-cd /d D:\SIH26001-LANDSLIDE\backend
-python -m venv venv
+cd C:\Users\sasin\Downloads\SIH26001-LANDSLIDE\backend
 venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
 copy .env.example .env
-```
-
-Edit `backend\.env` and set your PostgreSQL password.
-
-Then:
-
-```cmd
+notepad .env
 python scripts\init_db.py
-cd ..
-python database\seed_demo_data.py
-cd backend
-venv\Scripts\activate
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python scripts\check_setup.py
+uvicorn main:app --reload
 ```
 
-Backend:
-
-```text
-http://127.0.0.1:8000
-http://127.0.0.1:8000/docs
-```
-
-## Terminal 2 — Frontend
+## Frontend (new terminal)
 
 ```cmd
-cd /d D:\SIH26001-LANDSLIDE\frontend
+cd C:\Users\sasin\Downloads\SIH26001-LANDSLIDE\frontend
 npm install
-copy .env.example .env
 npm run dev
 ```
 
-Frontend:
+Open:
 
 ```text
 http://localhost:5173
 ```
 
-## First demo checks
+## Website flow
 
-1. Open the website and confirm `LIVE` status.
-2. Search `Cherrapunji` or `Gangtok`.
-3. Click a colored monitoring marker.
-4. Click open map space to calculate a coordinate-based risk.
-5. Click `Use My Location` and allow browser location access.
-6. Click `Satellite` to view the NASA GIBS visual layer.
-7. Click `Refresh Terrain` to replace demo slope values with DEM-derived terrain profiles.
+1. Landing page opens first.
+2. **Login to Monitoring** -> User Login.
+3. **Create User Account** -> New User + email OTP verification.
+4. **Admin Login** -> private Admin Console.
+5. After logout, the landing page appears again.
 
-The project intentionally does not ship `node_modules` or the Python virtual environment. `npm install` and `pip install -r requirements.txt` are required once on the target Windows machine.
+## Local OTP testing
+
+For local testing only, use:
+
+```env
+DEV_EMAIL_MODE=true
+```
+
+The API returns a demo OTP so you can complete registration without an email provider.
+
+## Production
+
+Use `DEV_EMAIL_MODE=false` and configure SMTP. See `DEPLOY_VERCEL_NEON.md`.

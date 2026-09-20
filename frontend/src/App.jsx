@@ -18,6 +18,22 @@ import "./App.css";
 const DEFAULT_LOCATION_ID = 1;
 const REFRESH_MS = 5 * 60 * 1000;
 
+const I18N = {
+  en: { title: "NER Landslide Early Warning System", subtitle: "Live rainfall, terrain intelligence, alerts and risk monitoring", search: "Search city, district or monitoring point...", searchBtn: "Search", myLocation: "Use My Location", manual: "Manual Location", calculate: "Calculate this location", alerts: "Enable Alerts", enabled: "Alerts Enabled", logout: "Logout", focus: "Current Monitoring Focus", risk: "Risk Status", history: "Risk History", activeAlerts: "Active Alerts", report: "Geo-tagged Citizen Report" },
+  ta: { title: "வடகிழக்கு நிலச்சரிவு முன் எச்சரிக்கை அமைப்பு", subtitle: "நேரடி மழைப்பொழிவு, நில அமைப்பு, எச்சரிக்கைகள் மற்றும் அபாய கண்காணிப்பு", search: "நகரம், மாவட்டம் அல்லது கண்காணிப்பு இடத்தை தேடுங்கள்...", searchBtn: "தேடு", myLocation: "என் இருப்பிடத்தைப் பயன்படுத்து", manual: "கைமுறை இருப்பிடம்", calculate: "இந்த இடத்தை கணக்கிடு", alerts: "எச்சரிக்கைகளை இயக்கு", enabled: "எச்சரிக்கைகள் இயங்குகின்றன", logout: "வெளியேறு", focus: "தற்போதைய கண்காணிப்பு இடம்", risk: "அபாய நிலை", history: "அபாய வரலாறு", activeAlerts: "செயலில் உள்ள எச்சரிக்கைகள்", report: "புவியியல் குறியீட்டுடன் தகவல்" },
+  hi: { title: "पूर्वोत्तर भूस्खलन पूर्व चेतावनी प्रणाली", subtitle: "लाइव वर्षा, भू-भाग, चेतावनी और जोखिम निगरानी", search: "शहर, जिला या निगरानी स्थान खोजें...", searchBtn: "खोजें", myLocation: "मेरी लोकेशन", manual: "मैनुअल लोकेशन", calculate: "इस स्थान की गणना करें", alerts: "अलर्ट सक्षम करें", enabled: "अलर्ट सक्षम", logout: "लॉग आउट", focus: "वर्तमान निगरानी स्थान", risk: "जोखिम स्थिति", history: "जोखिम इतिहास", activeAlerts: "सक्रिय अलर्ट", report: "जियो-टैग फील्ड रिपोर्ट" },
+  te: { title: "ఈశాన్య భూస्खలనం ముందస్తు హెచ్చరిక వ్యవస్థ", subtitle: "ప్రత్యక్ష వర్షపాతం, భూభాగం, హెచ్చరికలు మరియు ప్రమాద పర్యవేక్షణ", search: "నగరం లేదా పర్యవేక్షణ స్థలాన్ని శోధించండి...", searchBtn: "శోధించు", myLocation: "నా స్థానాన్ని ఉపయోగించు", manual: "మాన్యువల్ స్థానం", calculate: "ఈ స్థానాన్ని లెక్కించు", alerts: "హెచ్చరికలను ప్రారంభించు", enabled: "హెచ్చరికలు ప్రారంభించబడ్డాయి", logout: "లాగ్ అవుట్", focus: "ప్రస్తుత పర్యవేక్షణ స్థానం", risk: "ప్రమాద స్థితి", history: "ప్రమాద చరిత్ర", activeAlerts: "క్రియాశీల హెచ్చరికలు", report: "జియో-ట్యాగ్ నివేదిక" },
+  kn: { title: "ಈಶಾನ್ಯ ಭೂಕುಸಿತ ಮುನ್ನೆಚ್ಚರಿಕೆ ವ್ಯವಸ್ಥೆ", subtitle: "ನೇರ ಮಳೆ, ಭೂಪ್ರದೇಶ, ಎಚ್ಚರಿಕೆಗಳು ಮತ್ತು ಅಪಾಯ ಮೇಲ್ವಿಚಾರಣೆ", search: "ನಗರ ಅಥವಾ ಮೇಲ್ವಿಚಾರಣಾ ಸ್ಥಳವನ್ನು ಹುಡುಕಿ...", searchBtn: "ಹುಡುಕಿ", myLocation: "ನನ್ನ ಸ್ಥಳ ಬಳಸಿ", manual: "ಹಸ್ತಚಾಲಿತ ಸ್ಥಳ", calculate: "ಈ ಸ್ಥಳವನ್ನು ಲೆಕ್ಕಿಸಿ", alerts: "ಎಚ್ಚರಿಕೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ", enabled: "ಎಚ್ಚರಿಕೆಗಳು ಸಕ್ರಿಯ", logout: "ಲಾಗ್ ಔಟ್", focus: "ಪ್ರಸ್ತುತ ಮೇಲ್ವಿಚಾರಣಾ ಸ್ಥಳ", risk: "ಅಪಾಯ ಸ್ಥಿತಿ", history: "ಅಪಾಯ ಇತಿಹಾಸ", activeAlerts: "ಸಕ್ರಿಯ ಎಚ್ಚರಿಕೆಗಳು", report: "ಜಿಯೋ-ಟ್ಯಾಗ್ ವರದಿ" },
+  ml: { title: "വടക്കുകിഴക്കൻ മണ്ണിടിച്ചിൽ മുൻകരുതൽ സംവിധാനം", subtitle: "തത്സമയ മഴ, ഭൂപ്രകൃതി, മുന്നറിയിപ്പുകൾ, അപകട നിരീക്ഷണം", search: "നഗരം അല്ലെങ്കിൽ നിരീക്ഷണ സ്ഥലം തിരയുക...", searchBtn: "തിരയുക", myLocation: "എന്റെ സ്ഥലം ഉപയോഗിക്കുക", manual: "മാനുവൽ സ്ഥലം", calculate: "ഈ സ്ഥലം കണക്കാക്കുക", alerts: "അലേർട്ടുകൾ പ്രവർത്തിപ്പിക്കുക", enabled: "അലേർട്ടുകൾ പ്രവർത്തിക്കുന്നു", logout: "ലോഗ് ഔട്ട്", focus: "നിലവിലെ നിരീക്ഷണ സ്ഥലം", risk: "അപകട നില", history: "അപകട ചരിത്രം", activeAlerts: "സജീവ അലേർട്ടുകൾ", report: "ജിയോ-ടാഗ് റിപ്പോർട്ട്" },
+  bn: { title: "উত্তর-পূর্ব ভূমিধস আগাম সতর্কতা ব্যবস্থা", subtitle: "লাইভ বৃষ্টি, ভূখণ্ড, সতর্কতা ও ঝুঁকি পর্যবেক্ষণ", search: "শহর বা পর্যবেক্ষণ স্থান খুঁজুন...", searchBtn: "খুঁজুন", myLocation: "আমার অবস্থান ব্যবহার করুন", manual: "ম্যানুয়াল অবস্থান", calculate: "এই অবস্থান হিসাব করুন", alerts: "সতর্কতা চালু করুন", enabled: "সতর্কতা চালু", logout: "লগ আউট", focus: "বর্তমান পর্যবেক্ষণ স্থান", risk: "ঝুঁকির অবস্থা", history: "ঝুঁকির ইতিহাস", activeAlerts: "সক্রিয় সতর্কতা", report: "জিও-ট্যাগ রিপোর্ট" },
+  mr: { title: "ईशान्य भूस्खलन पूर्वसूचना प्रणाली", subtitle: "थेट पाऊस, भूभाग, सूचना आणि जोखीम निरीक्षण", search: "शहर किंवा निरीक्षण स्थान शोधा...", searchBtn: "शोधा", myLocation: "माझे स्थान वापरा", manual: "मॅन्युअल स्थान", calculate: "या स्थानाची गणना करा", alerts: "सूचना सुरू करा", enabled: "सूचना सुरू", logout: "लॉग आउट", focus: "सध्याचे निरीक्षण स्थान", risk: "जोखीम स्थिती", history: "जोखीम इतिहास", activeAlerts: "सक्रिय सूचना", report: "जिओ-टॅग अहवाल" },
+  gu: { title: "ઉત્તરપૂર્વ ભૂસ્ખલન પૂર્વ ચેતવણી પ્રણાલી", subtitle: "લાઇવ વરસાદ, ભૂપ્રદેશ, ચેતવણીઓ અને જોખમ નિરીક્ષણ", search: "શહેર અથવા મોનિટરિંગ સ્થાન શોધો...", searchBtn: "શોધો", myLocation: "મારું સ્થાન વાપરો", manual: "મેન્યુઅલ સ્થાન", calculate: "આ સ્થાનની ગણતરી કરો", alerts: "ચેતવણીઓ સક્ષમ કરો", enabled: "ચેતવણીઓ સક્ષમ", logout: "લૉગ આઉટ", focus: "વર્તમાન મોનિટરિંગ સ્થાન", risk: "જોખમ સ્થિતિ", history: "જોખમ ઇતિહાસ", activeAlerts: "સક્રિય ચેતવણીઓ", report: "જિયો-ટેગ રિપોર્ટ" },
+  pa: { title: "ਉੱਤਰ-ਪੂਰਬ ਭੂਸਖਲਨ ਪਹਿਲਾਂ ਚੇਤਾਵਨੀ ਪ੍ਰਣਾਲੀ", subtitle: "ਲਾਈਵ ਮੀਂਹ, ਭੂ-ਭਾਗ, ਚੇਤਾਵਨੀਆਂ ਅਤੇ ਜੋਖਮ ਨਿਗਰਾਨੀ", search: "ਸ਼ਹਿਰ ਜਾਂ ਨਿਗਰਾਨੀ ਸਥਾਨ ਖੋਜੋ...", searchBtn: "ਖੋਜੋ", myLocation: "ਮੇਰੀ ਸਥਿਤੀ ਵਰਤੋ", manual: "ਮੈਨੁਅਲ ਸਥਿਤੀ", calculate: "ਇਸ ਸਥਿਤੀ ਦੀ ਗਣਨਾ ਕਰੋ", alerts: "ਚੇਤਾਵਨੀਆਂ ਚਾਲੂ ਕਰੋ", enabled: "ਚੇਤਾਵਨੀਆਂ ਚਾਲੂ", logout: "ਲੌਗ ਆਉਟ", focus: "ਮੌਜੂਦਾ ਨਿਗਰਾਨੀ ਸਥਾਨ", risk: "ਜੋਖਮ ਸਥਿਤੀ", history: "ਜੋਖਮ ਇਤਿਹਾਸ", activeAlerts: "ਸਰਗਰਮ ਚੇਤਾਵਨੀਆਂ", report: "ਜਿਓ-ਟੈਗ ਰਿਪੋਰਟ" },
+  or: { title: "ଉତ୍ତର-ପୂର୍ବ ଭୂସ୍ଖଳନ ପୂର୍ବ ସତର୍କତା ବ୍ୟବସ୍ଥା", subtitle: "ଲାଇଭ ବର୍ଷା, ଭୂଭାଗ, ସତର୍କତା ଓ ବିପଦ ନିରୀକ୍ଷଣ", search: "ସହର କିମ୍ବା ନିରୀକ୍ଷଣ ସ୍ଥାନ ଖୋଜନ୍ତୁ...", searchBtn: "ଖୋଜନ୍ତୁ", myLocation: "ମୋ ସ୍ଥାନ ବ୍ୟବହାର କରନ୍ତୁ", manual: "ମାନୁଆଲ ସ୍ଥାନ", calculate: "ଏହି ସ୍ଥାନ ଗଣନା କରନ୍ତୁ", alerts: "ସତର୍କତା ସକ୍ରିୟ କରନ୍ତୁ", enabled: "ସତର୍କତା ସକ୍ରିୟ", logout: "ଲଗ ଆଉଟ", focus: "ବର୍ତ୍ତମାନ ନିରୀକ୍ଷଣ ସ୍ଥାନ", risk: "ବିପଦ ସ୍ଥିତି", history: "ବିପଦ ଇତିହାସ", activeAlerts: "ସକ୍ରିୟ ସତର୍କତା", report: "ଜିଓ-ଟ୍ୟାଗ ରିପୋର୍ଟ" },
+  as: { title: "উত্তৰ-পূব ভূমিস্খলন আগতীয়া সতৰ্কতা ব্যৱস্থা", subtitle: "লাইভ বৰষুণ, ভূখণ্ড, সতৰ্কতা আৰু বিপদ নিৰীক্ষণ", search: "চহৰ বা নিৰীক্ষণ স্থান বিচাৰক...", searchBtn: "বিচাৰক", myLocation: "মোৰ স্থান ব্যৱহাৰ কৰক", manual: "হস্তচালিত স্থান", calculate: "এই স্থান গণনা কৰক", alerts: "সতৰ্কতা সক্ৰিয় কৰক", enabled: "সতৰ্কতা সক্ৰিয়", logout: "লগ আউট", focus: "বৰ্তমান নিৰীক্ষণ স্থান", risk: "বিপদৰ অৱস্থা", history: "বিপদৰ ইতিহাস", activeAlerts: "সক্ৰিয় সতৰ্কতা", report: "জিঅ'-টেগ ৰিপ'ৰ্ট" },
+  ur: { title: "شمال مشرق لینڈ سلائیڈ ابتدائی انتباہ نظام", subtitle: "براہ راست بارش، خطہ، انتباہات اور خطرے کی نگرانی", search: "شہر یا نگرانی کا مقام تلاش کریں...", searchBtn: "تلاش", myLocation: "میری موجودہ جگہ", manual: "دستی مقام", calculate: "اس مقام کا حساب کریں", alerts: "انتباہات فعال کریں", enabled: "انتباہات فعال", logout: "لاگ آؤٹ", focus: "موجودہ نگرانی کا مقام", risk: "خطرے کی حالت", history: "خطرے کی تاریخ", activeAlerts: "فعال انتباہات", report: "جیو ٹیگ رپورٹ" }
+};
+
 const RISK_COLORS = {
   LOW: "#22c55e",
   MEDIUM: "#f59e0b",
@@ -41,7 +57,7 @@ function riskClass(level = "LOW") {
   return `risk-pill risk-${level.toLowerCase()}`;
 }
 
-function App() {
+function Dashboard({ auth, onLogout }) {
   const [risk, setRisk] = useState(null);
   const [locations, setLocations] = useState([]);
   const [history, setHistory] = useState([]);
@@ -62,6 +78,15 @@ function App() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [activeSource, setActiveSource] = useState("default");
+  const [citizenReports, setCitizenReports] = useState([]);
+  const [roadReports, setRoadReports] = useState([]);
+  const [reportForm, setReportForm] = useState({ type: "OBSERVATION", description: "", reporter: auth?.name || "Citizen" });
+  const [reportFile, setReportFile] = useState(null);
+  const [roadForm, setRoadForm] = useState({ road: "", status: "BLOCKED", description: "", reporter: "Field Official" });
+  const [language, setLanguage] = useState("en");
+  const t = I18N[language] || I18N.en;
+  const [manualLat, setManualLat] = useState(25.5);
+  const [manualLon, setManualLon] = useState(92.5);
 
   const currentIsRaining =
     Number(risk?.current_rain_mm || 0) > 0 ||
@@ -77,18 +102,20 @@ function App() {
   }, []);
 
   const refreshGlobal = useCallback(async () => {
-    const [all, summary, activeAlerts, status, states] = await Promise.all([
+    const [all, summary, activeAlerts, status, states, roads] = await Promise.all([
       apiGet("/api/live-risk-all"),
       apiGet("/api/analytics/summary"),
       apiGet("/api/alerts?status=ACTIVE"),
       apiGet("/api/ml/status"),
       apiGet("/api/analytics/state-summary"),
+      apiGet("/api/road-reports"),
     ]);
     setLocations(all);
     setAnalytics(summary);
     setAlerts(activeAlerts);
     setModelStatus(status);
     setStateSummary(states);
+    setRoadReports(roads);
   }, []);
 
   const refreshEverything = useCallback(async () => {
@@ -273,6 +300,16 @@ const useCurrentLocation = () => {
     }
   );
 };
+  const useManualLocation = () => {
+    const lat = Number(manualLat);
+    const lon = Number(manualLon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setError("Enter valid latitude (-90 to 90) and longitude (-180 to 180).");
+      return;
+    }
+    runRiskForCoordinates(lat, lon, "Manual Location");
+  };
+
   const acknowledgeAlert = async (id) => {
     try {
       await apiPost(`/api/alerts/${id}/acknowledge`);
@@ -325,6 +362,45 @@ const useCurrentLocation = () => {
     runRiskForCoordinates(latitude, longitude, "Map Selected Location");
   };
 
+  const submitCitizenReport = async (event) => {
+    event.preventDefault();
+    if (!reportForm.description.trim()) return setError("Please describe the field observation.");
+    const point = selectedCoordinate || { latitude: Number(risk?.latitude || 25.5), longitude: Number(risk?.longitude || 92.5) };
+    const form = new FormData();
+    form.append("description", reportForm.description);
+    form.append("latitude", String(point.latitude));
+    form.append("longitude", String(point.longitude));
+    form.append("report_type", reportForm.type);
+    form.append("reporter_name", reportForm.reporter || "Citizen");
+    form.append("location_name", risk?.searched_place || risk?.location || "Selected Location");
+    if (reportFile) form.append("media", reportFile);
+    try {
+      await apiPost("/api/citizen-reports", form);
+      setReportForm((v) => ({ ...v, description: "" }));
+      setReportFile(null);
+      setError("Citizen report submitted successfully.");
+    } catch (err) { setError(err.message || "Citizen report failed."); }
+  };
+
+  const submitRoadReport = async (event) => {
+    event.preventDefault();
+    if (!roadForm.road.trim()) return setError("Enter a road name.");
+    const point = selectedCoordinate || { latitude: Number(risk?.latitude || 25.5), longitude: Number(risk?.longitude || 92.5) };
+    const form = new FormData();
+    form.append("road_name", roadForm.road);
+    form.append("status", roadForm.status);
+    form.append("latitude", String(point.latitude));
+    form.append("longitude", String(point.longitude));
+    form.append("description", roadForm.description);
+    form.append("reported_by", roadForm.reporter || "Field Official");
+    try {
+      await apiPost("/api/road-reports", form);
+      setRoadForm((v) => ({ ...v, road: "", description: "" }));
+      setRoadReports(await apiGet("/api/road-reports"));
+      setError("");
+    } catch (err) { setError(err.message || "Road report failed."); }
+  };
+
   const exportLocations = () => {
     const headers = [
       "Location", "State", "District", "Latitude", "Longitude",
@@ -370,14 +446,17 @@ const useCurrentLocation = () => {
         <header className="topbar">
           <div>
             <div className="eyebrow">DISASTER MANAGEMENT • NER</div>
-            <h1>NER Landslide Early Warning System</h1>
-            <p>Live rainfall, terrain intelligence, alerts and risk monitoring</p>
+            <h1>{t.title}</h1>
+            <p>{t.subtitle}</p>
           </div>
           <div className="topbar-actions">
+            <select className="language-select" value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Language">
+              <option value="en">English</option><option value="ta">தமிழ்</option><option value="hi">हिन्दी</option><option value="te">తెలుగు</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option><option value="bn">বাংলা</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="pa">ਪੰਜਾਬੀ</option><option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option>
+            </select>
             <button className="ghost-btn" onClick={enableNotifications}>
-              🔔 {notificationsEnabled ? "Alerts Enabled" : "Enable Alerts"}
+              🔔 {notificationsEnabled ? t.enabled : t.alerts}
             </button>
-            <div className="live-chip"><span /> LIVE</div>
+            <div className="live-chip"><span /> LIVE</div><button className="ghost-btn" onClick={onLogout}>{t.logout}</button>
           </div>
         </header>
 
@@ -391,11 +470,11 @@ const useCurrentLocation = () => {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && performSearch()}
-                placeholder="Search city, district or monitoring point..."
+                placeholder={t.search}
               />
             </div>
             <button className="primary-btn" onClick={performSearch} disabled={busy}>
-              {busy ? "Working…" : "Search"}
+              {busy ? "Working…" : t.searchBtn}
             </button>
             <button className="location-btn" onClick={useCurrentLocation} disabled={busy}>
               📍 Use My Location
@@ -428,9 +507,19 @@ const useCurrentLocation = () => {
           )}
         </section>
 
+        <section className="control-panel manual-location-panel">
+          <div className="panel-kicker">{t.manual}</div>
+          <div className="search-row">
+            <input type="number" step="any" value={manualLat} onChange={(e) => setManualLat(e.target.value)} placeholder="Latitude" />
+            <input type="number" step="any" value={manualLon} onChange={(e) => setManualLon(e.target.value)} placeholder="Longitude" />
+            <button className="secondary-btn" onClick={useManualLocation} disabled={busy}>{t.calculate}</button>
+            <span className="muted">Use map click, GPS, city search, or exact coordinates.</span>
+          </div>
+        </section>
+
         <section className="hero-grid">
           <div className="selected-hero">
-            <div className="hero-label">CURRENT MONITORING FOCUS</div>
+            <div className="hero-label">{t.focus}</div>
             <h2>📍 {risk?.searched_place || risk?.location || "Loading…"}</h2>
             <p>{risk?.district}{risk?.district && risk?.state ? ", " : ""}{risk?.state}</p>
             <div className="coordinate-row">
@@ -442,7 +531,7 @@ const useCurrentLocation = () => {
 
           <div className="hero-risk">
             <div>
-              <div className="hero-label">RISK STATUS</div>
+              <div className="hero-label">{t.risk}</div>
               <div className="risk-score-big">{risk?.risk_score ?? "—"}<small>/100</small></div>
             </div>
             <div className={riskClass(risk?.risk_level)}>{risk?.risk_level || "UNKNOWN"}</div>
@@ -553,7 +642,7 @@ const useCurrentLocation = () => {
             <div className="panel-head">
               <div>
                 <div className="panel-kicker">TIME SERIES</div>
-                <h3>Risk History</h3>
+                <h3>{t.history}</h3>
               </div>
               <span className="muted">Last {history.length || 0} records</span>
             </div>
@@ -641,7 +730,7 @@ const useCurrentLocation = () => {
             <div className="panel-head">
               <div>
                 <div className="panel-kicker">EARLY WARNING</div>
-                <h3>Active Alerts</h3>
+                <h3>{t.activeAlerts}</h3>
               </div>
               <span className="alert-count">{analytics?.active_alerts ?? alerts.length}</span>
             </div>
@@ -695,6 +784,52 @@ const useCurrentLocation = () => {
           </div>
         </section>
 
+
+        <section className="content-grid lower-grid">
+          <div className="panel report-panel">
+            <div className="panel-kicker">CITIZEN / FIELD REPORTING</div>
+            <h3>{t.report}</h3>
+            <p className="muted">Attach a photo/video and submit it at the selected coordinate. Uploaded media is visible to administrators only.</p>
+            <form className="report-form" onSubmit={submitCitizenReport}>
+              <div className="form-grid">
+                <select value={reportForm.type} onChange={(e) => setReportForm({...reportForm, type: e.target.value})}>
+                  <option value="OBSERVATION">General observation</option><option value="CRACK">Ground crack</option><option value="SLOPE_MOVEMENT">Slope movement</option><option value="BLOCKED_ROAD">Blocked road</option><option value="FLOODING">Flooding</option>
+                </select>
+                <input value={reportForm.reporter} onChange={(e) => setReportForm({...reportForm, reporter: e.target.value})} placeholder="Reporter name" />
+              </div>
+              <textarea value={reportForm.description} onChange={(e) => setReportForm({...reportForm, description: e.target.value})} placeholder="Describe cracks, slope movement, blockage or flooding..." rows="3" />
+              <input type="file" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => setReportFile(e.target.files?.[0] || null)} />
+              <button className="secondary-btn" type="submit">Submit geo-tagged report</button>
+            </form>
+            <div className="mini-list"><div className="mini-item"><strong>PRIVATE</strong><span>Submitted report media and documents are available in the Admin Console only.</span></div></div>
+          </div>
+
+          <div className="panel report-panel">
+            <div className="panel-kicker">ROAD CONNECTIVITY</div>
+            <h3>Road status & emergency prioritisation</h3>
+            <p className="muted">Field officials can publish OPEN, RESTRICTED or BLOCKED road conditions.</p>
+            <form className="report-form" onSubmit={submitRoadReport}>
+              <div className="form-grid">
+                <input value={roadForm.road} onChange={(e) => setRoadForm({...roadForm, road: e.target.value})} placeholder="Road / highway name" />
+                <select value={roadForm.status} onChange={(e) => setRoadForm({...roadForm, status: e.target.value})}><option>BLOCKED</option><option>RESTRICTED</option><option>OPEN</option></select>
+              </div>
+              <textarea value={roadForm.description} onChange={(e) => setRoadForm({...roadForm, description: e.target.value})} placeholder="Reason / response information" rows="3" />
+              <button className="secondary-btn" type="submit">Publish road status</button>
+            </form>
+            <div className="mini-list">{roadReports.slice(0, 6).map((r) => <div className="mini-item" key={r.id}><strong>{r.status} • {r.road_name}</strong><span>{r.description || "No description"}</span><small>{Number(r.latitude).toFixed(4)}, {Number(r.longitude).toFixed(4)}</small></div>)}</div>
+          </div>
+        </section>
+
+        <section className="panel integration-panel">
+          <div className="panel-kicker">FIELD + SENSOR + SATELLITE INTEGRATION</div>
+          <div className="integration-grid">
+            <div><strong>🛰 Satellite context</strong><span>NASA GIBS MODIS true-colour overlay for visual inspection. Not treated as a validated ML feature.</span></div>
+            <div><strong>📡 Soil sensor ready</strong><span>REST ingestion endpoint accepts soil moisture, vibration and battery readings from ESP32/Arduino gateways.</span></div>
+            <div><strong>📶 Low-network ready</strong><span>Core UI assets are cached by the service worker; field reports can be retried after connectivity returns.</span></div>
+            <div><strong>🔔 Early warning</strong><span>Dashboard + browser notifications are implemented. SMS can be connected later through an SMS provider.</span></div>
+          </div>
+        </section>
+
         <footer className="footer-bar">
           <div><span>System status</span><strong>Operational</strong></div>
           <div><span>Monitoring points</span><strong>{locations.length}</strong></div>
@@ -709,6 +844,224 @@ const useCurrentLocation = () => {
       </main>
     </div>
   );
+}
+
+function LandingPage({ onOpenAuth }) {
+  const features = [
+    ["🌧️", "Live Weather", "Rainfall, temperature, precipitation and forecast context from live weather data."],
+    ["⛰️", "Terrain Intelligence", "Elevation and approximate slope information for selected NER locations and coordinates."],
+    ["🗺️", "GIS Risk Map", "Select a monitoring point, search a city, use GPS or click directly on the map."],
+    ["🔔", "Early Warning", "Risk levels, alerts and browser notifications help users review changing conditions."],
+    ["📷", "Citizen Reporting", "Authenticated users can submit geo-tagged field observations and media."],
+    ["🛡️", "Admin Console", "Administrators can review private citizen media and operational road reports."],
+  ];
+
+  return (
+    <div className="landing-shell">
+      <header className="landing-nav">
+        <div className="brand-mark">
+          <div className="brand-icon">⛰</div>
+          <div><strong>NER Landslide</strong><span>Early Warning System</span></div>
+        </div>
+        <button className="ghost-btn" onClick={() => onOpenAuth("login")}>Login</button>
+      </header>
+
+      <main className="landing-main">
+        <section className="landing-hero">
+          <div className="landing-copy">
+            <div className="eyebrow">DISASTER MANAGEMENT • NORTH EASTERN REGION</div>
+            <h1>AI-Based Early Warning &amp; Landslide Risk Monitoring</h1>
+            <p>
+              A web-based monitoring platform for rainfall, terrain, location intelligence,
+              risk assessment, alerts and field reporting across the North Eastern Region of India.
+            </p>
+            <div className="landing-actions">
+              <button className="primary-btn" onClick={() => onOpenAuth("login")}>Login to Monitoring</button>
+              <button className="secondary-btn" onClick={() => onOpenAuth("register")}>Create User Account</button>
+              <button className="mini-btn" onClick={() => onOpenAuth("admin")}>Admin Login</button>
+            </div>
+            <div className="landing-note">
+              <span>✓ Web application</span><span>✓ Live weather context</span><span>✓ NER-focused GIS</span><span>✓ User + Admin access</span>
+            </div>
+          </div>
+          <div className="landing-visual">
+            <div className="hero-orb">⛰️</div>
+            <div className="landing-stat"><span>MONITORING</span><strong>NER</strong><small>8 North Eastern states</small></div>
+            <div className="landing-stat"><span>RISK INPUTS</span><strong>Weather + Terrain</strong><small>Live context + location analysis</small></div>
+            <div className="landing-stat"><span>ACCESS</span><strong>User / Admin</strong><small>Email OTP + server-side admin credential</small></div>
+          </div>
+        </section>
+
+        <section className="landing-section">
+          <div className="panel-kicker">PLATFORM CAPABILITIES</div>
+          <h2>What the website provides</h2>
+          <div className="feature-grid">
+            {features.map(([icon, title, description]) => (
+              <article className="feature-card" key={title}>
+                <div className="feature-icon">{icon}</div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-section landing-how">
+          <div>
+            <div className="panel-kicker">HOW IT WORKS</div>
+            <h2>From location selection to risk monitoring</h2>
+          </div>
+          <div className="step-grid">
+            <div><b>01</b><strong>Select a place</strong><span>Search a city, use current location, enter coordinates or click the map.</span></div>
+            <div><b>02</b><strong>Collect live context</strong><span>Weather and terrain services provide the current environmental inputs.</span></div>
+            <div><b>03</b><strong>Calculate risk</strong><span>The prototype risk engine combines rainfall and terrain factors into a risk index.</span></div>
+            <div><b>04</b><strong>Review &amp; report</strong><span>View alerts, history, regional status and submit authenticated field reports.</span></div>
+          </div>
+        </section>
+
+        <section className="landing-disclaimer">
+          <strong>Prototype notice</strong>
+          <span>Risk thresholds and model outputs are intended for demonstration and require validation with representative local landslide records before operational deployment.</span>
+        </section>
+      </main>
+
+      <footer className="landing-footer">SIH26001 • AI-Based Early Warning and Landslide Risk Monitoring System in NER</footer>
+    </div>
+  );
+}
+
+function AuthScreen({ onAuth, onBack, initialMode = "register" }) {
+  const [mode, setMode] = useState(initialMode === "admin" ? "login" : initialMode);
+  const [admin, setAdmin] = useState(initialMode === "admin");
+  const [form, setForm] = useState({ name: "", email: "", phone: "", aadhaar: "", otp: "", username: "admin", password: "" });
+  const [step, setStep] = useState("details");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault(); setBusy(true); setMessage("");
+    try {
+      const fd = new FormData();
+      if (admin) {
+        fd.append("username", form.username); fd.append("password", form.password);
+        const result = await apiPost("/api/auth/admin-login", fd);
+        localStorage.setItem("landslide_token", result.token); onAuth({ ...result }); return;
+      }
+      fd.append("email", form.email);
+
+      // Registration: send OTP only from the details step.
+      // On the OTP step, verify the existing OTP instead of registering again.
+      if (mode === "register" && step === "details") {
+        fd.append("name", form.name);
+        fd.append("phone", form.phone);
+        fd.append("aadhaar", form.aadhaar);
+        const result = await apiPost("/api/auth/register", fd);
+        setStep("otp");
+        setMessage(result.dev_code ? `Demo verification code: ${result.dev_code}` : "Verification code sent to your email.");
+      } else if (mode === "login" && step === "details") {
+        const result = await apiPost("/api/auth/request-login-otp", fd);
+        setStep("otp");
+        setMessage(result.dev_code ? `Demo login code: ${result.dev_code}` : "Login code sent to your email.");
+      } else {
+        fd.append("otp", form.otp);
+        const result = await apiPost(
+          mode === "register" ? "/api/auth/verify-email" : "/api/auth/login-otp",
+          fd
+        );
+        localStorage.setItem("landslide_token", result.token);
+        const me = await apiGet("/api/auth/me");
+        onAuth(me);
+      }
+    } catch (err) { setMessage(err.message || "Authentication failed."); } finally { setBusy(false); }
+  };
+
+  return <div className="auth-shell"><div className="auth-card">
+    <button type="button" className="back-link" onClick={onBack}>← Back to website</button>
+    <div className="eyebrow">NER DISASTER MANAGEMENT</div>
+    <h1>AI Landslide Early Warning</h1>
+    <p className="muted">Secure user access, location-based risk monitoring and private field reports.</p>
+    <div className="auth-tabs"><button className={mode === "register" && !admin ? "active" : ""} onClick={() => {setAdmin(false);setMode("register");setStep("details");}}>New User</button><button className={mode === "login" && !admin ? "active" : ""} onClick={() => {setAdmin(false);setMode("login");setStep("details");}}>User Login</button><button className={admin ? "active" : ""} onClick={() => {setAdmin(true);setStep("details");}}>Admin</button></div>
+    <form onSubmit={submit} className="auth-form">
+      {admin ? <><input value={form.username} onChange={e=>setForm({...form,username:e.target.value})} placeholder="Admin username" required /><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Admin password" required /></> : <>{mode === "register" && step === "details" && <><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Full name" required /><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone number" required /><input value={form.aadhaar} onChange={e=>setForm({...form,aadhaar:e.target.value})} placeholder="Aadhaar number (12 digits)" inputMode="numeric" required /></>}<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email address" required />{step === "otp" && <input value={form.otp} onChange={e=>setForm({...form,otp:e.target.value})} placeholder="6-digit email OTP" inputMode="numeric" required />}</>}
+      <button className="primary-btn" disabled={busy}>{busy ? "Please wait…" : step === "otp" ? "Verify & Continue" : admin ? "Admin Login" : mode === "register" ? "Send Verification Code" : "Send Login Code"}</button>
+    </form>
+    {message && <div className="error-banner">{message}</div>}
+    <small className="muted">Aadhaar is stored only as a one-way hash. This prototype does not claim UIDAI authentication. Email OTP verifies control of the email address.</small>
+  </div></div>;
+}
+
+function AdminPage({ auth, onLogout }) {
+  const [reports, setReports] = useState([]); const [roads, setRoads] = useState([]); const [error, setError] = useState("");
+  const load = async () => { try { setReports(await apiGet("/api/admin/reports")); setRoads(await apiGet("/api/admin/road-reports")); } catch (e) { setError(e.message); } };
+  const openMedia = async (id) => {
+    try {
+      const token = localStorage.getItem("landslide_token");
+      const response = await fetch(`${API_BASE}/api/citizen-reports/${id}/media`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error("Media access denied");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) { setError(e.message); }
+  };
+  useEffect(() => { load(); }, []);
+  return <div className="auth-shell"><div className="admin-shell">
+    <header className="topbar"><div><div className="eyebrow">ADMIN CONSOLE</div><h1>NER Field Reports & Alerts</h1><p>Private administrator view for citizen uploads and operational reports.</p></div><button className="ghost-btn" onClick={onLogout}>Logout</button></header>
+    {error && <div className="error-banner">{error}</div>}
+    <div className="admin-grid"><section className="panel"><div className="panel-kicker">CITIZEN MEDIA / DOCUMENTS</div><h3>Submitted reports</h3>{reports.length ? reports.map(r => <div className="admin-report" key={r.id}><strong>{r.report_type} • {r.reporter_name || "Citizen"}</strong><p>{r.description}</p><small>{r.location_name || "Selected location"} • {Number(r.latitude).toFixed(5)}, {Number(r.longitude).toFixed(5)} • {formatTime(r.created_at)}</small>{r.media_filename && <button className="secondary-btn" onClick={() => openMedia(r.id)}>View uploaded {r.media_content_type?.startsWith("video") ? "video" : "image/document"}</button>}</div>) : <div className="empty-state">No citizen reports yet.</div>}</section>
+    <section className="panel"><div className="panel-kicker">ROAD CONNECTIVITY</div><h3>Operational reports</h3>{roads.length ? roads.map(r => <div className="admin-report" key={r.id}><strong>{r.status} • {r.road_name}</strong><p>{r.description || "No description"}</p><small>{r.reported_by || "Field official"} • {Number(r.latitude).toFixed(5)}, {Number(r.longitude).toFixed(5)}</small></div>) : <div className="empty-state">No road reports.</div>}</section></div>
+    <div className="attribution-note">Admin access is protected by a server-side credential. Uploaded media is not listed on the public dashboard.</div>
+  </div></div>;
+}
+
+function App() {
+  const [auth, setAuth] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+
+  useEffect(() => {
+    const handleExpired = () => {
+      localStorage.removeItem("landslide_token");
+      setAuth(null);
+      setShowAuth(true);
+      setAuthMode("login");
+    };
+    window.addEventListener("landslide-auth-expired", handleExpired);
+    return () => window.removeEventListener("landslide-auth-expired", handleExpired);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("landslide_token");
+    if (!token) {
+      setReady(true);
+      return;
+    }
+    apiGet("/api/auth/me")
+      .then((profile) => setAuth(profile))
+      .catch(() => {
+        localStorage.removeItem("landslide_token");
+        setAuth(null);
+      })
+      .finally(() => setReady(true));
+  }, []);
+
+  const openAuth = (mode = "login") => {
+    setAuthMode(mode);
+    setShowAuth(true);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("landslide_token");
+    setAuth(null);
+    setShowAuth(false);
+    setAuthMode("login");
+  };
+
+  if (!ready) return <div className="auth-shell"><div className="auth-card">Loading secure access…</div></div>;
+  if (auth?.role === "admin") return <AdminPage auth={auth} onLogout={logout} />;
+  if (auth?.role === "user") return <Dashboard auth={auth} onLogout={logout} />;
+  if (!showAuth) return <LandingPage onOpenAuth={openAuth} />;
+  return <AuthScreen onAuth={setAuth} onBack={() => setShowAuth(false)} initialMode={authMode} />;
 }
 
 export default App;

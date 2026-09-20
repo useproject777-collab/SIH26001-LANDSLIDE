@@ -1,0 +1,9 @@
+{
+  "name": "NER Landslide Early Warning System",
+  "short_name": "NER Landslide",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06111e",
+  "theme_color": "#06111e",
+  "icons": []
+}

@@ -46,3 +46,17 @@
 ## Satellite context
 - NASA GIBS MODIS Terra true-color layer
 - satellite layer is visual context only; it is not used as a validated risk feature
+
+
+## New security/privacy modules
+- User registration + email OTP verification
+- User email-OTP login
+- Separate admin login
+- Server-side bearer tokens
+- Admin-only citizen media/report listing
+- Admin-only media endpoint
+- Aadhaar one-way hash storage; no plaintext Aadhaar
+- Email warning with 30-minute de-duplication
+- Manual coordinate risk selection
+- 13-language static UI selector
+- Additional NER monitoring locations in seed data
