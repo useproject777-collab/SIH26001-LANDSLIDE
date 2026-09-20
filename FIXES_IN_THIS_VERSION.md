@@ -1,18 +1,31 @@
-# Fixes in this version
+# What was fixed in this version
 
-1. Added a proper public landing/index page before authentication.
-2. Added clear User Login, New User and Admin Login entry points.
-3. Added Back to website navigation from the authentication screen.
-4. Fixed Admin Console logout button so it no longer references the Dashboard-only `t` variable.
-5. Removed the public-dashboard attempt to GET admin-only citizen reports after submitting a report.
-6. User OTP verification now reloads `/api/auth/me` before opening the dashboard.
-7. Added auth-expired event handling so a 401 clears the stale token and returns the user to login.
-8. Disabled Vite HMR WebSocket in this package to remove the localhost WebSocket handshake 400 error seen in the reported setup. Normal `Ctrl+R` refresh remains available.
-9. Fixed `backend/scripts/check_setup.py` syntax so the setup checker can be compiled/run.
-10. Added `DEPLOY_VERCEL_NEON.md` with the complete Neon + Vercel production setup sequence.
-11. Added an updated Windows quick-start flow.
-12. Python source and backend scripts were syntax-checked with `py_compile`.
+## Authentication
+- The app now renders `New User / User Login / Admin` before any protected dashboard request.
+- User registration stores the user in `app_users`, creates an OTP in `email_otps`, and returns a demo OTP when `DEV_EMAIL_MODE=true`.
+- Email verification marks `email_verified=true` and returns a signed bearer token.
+- Login OTP has the same working demo-OTP path.
+- `/api/auth/me` returns the actual user record for verified users.
+- Expired/invalid user tokens are cleared by the frontend.
 
-## Important
+## Browser cache / Vite development
+- The service worker is no longer registered during Vite development.
+- The frontend removes an old `ner-landslide-*` service worker/cache when it detects one.
+- Production service worker cache is versioned to `v2` and navigation uses network-first behavior.
+- Vite HMR is configured explicitly for `localhost:5173`.
 
-The browser console errors `401 Login required` and `403 Admin access required` are expected when protected endpoints are called without the correct authenticated role. The updated UI no longer calls the admin-only citizen-report list from the normal user dashboard.
+## Dashboard/API
+- Frontend API base can be configured with `VITE_API_BASE`; local development still defaults to `http://127.0.0.1:8000`.
+- Citizen report submission no longer performs an admin-only GET after a successful user POST. This previously made a successful submission look like a 403 failure.
+- Admin page no longer references an undefined translation variable.
+- Authenticated dashboard bootstrap is explicit.
+
+## Database setup
+- Added `backend/scripts/init_db.py`.
+- Added `backend/scripts/check_setup.py`.
+- Updated the Windows guide and testing checklist with exact commands and SQL checks.
+
+## Important prototype limits
+- Aadhaar is stored only as a one-way hash and this project does not perform official UIDAI authentication/e-KYC.
+- Risk thresholds are prototype rules and need validation against representative historical data before operational deployment.
+- Seeded monitoring points are demo/prototype points, not claims of official government sensor stations.

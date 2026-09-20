@@ -328,8 +328,6 @@ def register_user(
         result = send_email(email, "NER Landslide Alert System - Email Verification", f"Your verification code is valid for 10 minutes.\n\nVerification code: {otp}\n\nUse this code to verify your email.")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    if not result.get("ok"):
-        raise HTTPException(status_code=503, detail=result.get("error", "Unable to send the verification email."))
     response = {"status": "verification_sent", "email": email}
     if result.get("dev_code"):
         response["dev_code"] = result["dev_code"]
@@ -381,8 +379,6 @@ def request_login_otp(email: str = Form(...), db: Session = Depends(get_db)):
         result = send_email(email, "NER Landslide Alert System - Login Code", f"Your login verification code is valid for 10 minutes.\n\nVerification code: {otp}")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    if not result.get("ok"):
-        raise HTTPException(status_code=503, detail=result.get("error", "Unable to send the login email."))
     response={"status":"login_code_sent","email":email}
     if result.get("dev_code"): response["dev_code"]=result["dev_code"]
     return response

@@ -846,93 +846,9 @@ const useCurrentLocation = () => {
   );
 }
 
-function LandingPage({ onOpenAuth }) {
-  const features = [
-    ["🌧️", "Live Weather", "Rainfall, temperature, precipitation and forecast context from live weather data."],
-    ["⛰️", "Terrain Intelligence", "Elevation and approximate slope information for selected NER locations and coordinates."],
-    ["🗺️", "GIS Risk Map", "Select a monitoring point, search a city, use GPS or click directly on the map."],
-    ["🔔", "Early Warning", "Risk levels, alerts and browser notifications help users review changing conditions."],
-    ["📷", "Citizen Reporting", "Authenticated users can submit geo-tagged field observations and media."],
-    ["🛡️", "Admin Console", "Administrators can review private citizen media and operational road reports."],
-  ];
-
-  return (
-    <div className="landing-shell">
-      <header className="landing-nav">
-        <div className="brand-mark">
-          <div className="brand-icon">⛰</div>
-          <div><strong>NER Landslide</strong><span>Early Warning System</span></div>
-        </div>
-        <button className="ghost-btn" onClick={() => onOpenAuth("login")}>Login</button>
-      </header>
-
-      <main className="landing-main">
-        <section className="landing-hero">
-          <div className="landing-copy">
-            <div className="eyebrow">DISASTER MANAGEMENT • NORTH EASTERN REGION</div>
-            <h1>AI-Based Early Warning &amp; Landslide Risk Monitoring</h1>
-            <p>
-              A web-based monitoring platform for rainfall, terrain, location intelligence,
-              risk assessment, alerts and field reporting across the North Eastern Region of India.
-            </p>
-            <div className="landing-actions">
-              <button className="primary-btn" onClick={() => onOpenAuth("login")}>Login to Monitoring</button>
-              <button className="secondary-btn" onClick={() => onOpenAuth("register")}>Create User Account</button>
-              <button className="mini-btn" onClick={() => onOpenAuth("admin")}>Admin Login</button>
-            </div>
-            <div className="landing-note">
-              <span>✓ Web application</span><span>✓ Live weather context</span><span>✓ NER-focused GIS</span><span>✓ User + Admin access</span>
-            </div>
-          </div>
-          <div className="landing-visual">
-            <div className="hero-orb">⛰️</div>
-            <div className="landing-stat"><span>MONITORING</span><strong>NER</strong><small>8 North Eastern states</small></div>
-            <div className="landing-stat"><span>RISK INPUTS</span><strong>Weather + Terrain</strong><small>Live context + location analysis</small></div>
-            <div className="landing-stat"><span>ACCESS</span><strong>User / Admin</strong><small>Email OTP + server-side admin credential</small></div>
-          </div>
-        </section>
-
-        <section className="landing-section">
-          <div className="panel-kicker">PLATFORM CAPABILITIES</div>
-          <h2>What the website provides</h2>
-          <div className="feature-grid">
-            {features.map(([icon, title, description]) => (
-              <article className="feature-card" key={title}>
-                <div className="feature-icon">{icon}</div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-section landing-how">
-          <div>
-            <div className="panel-kicker">HOW IT WORKS</div>
-            <h2>From location selection to risk monitoring</h2>
-          </div>
-          <div className="step-grid">
-            <div><b>01</b><strong>Select a place</strong><span>Search a city, use current location, enter coordinates or click the map.</span></div>
-            <div><b>02</b><strong>Collect live context</strong><span>Weather and terrain services provide the current environmental inputs.</span></div>
-            <div><b>03</b><strong>Calculate risk</strong><span>The prototype risk engine combines rainfall and terrain factors into a risk index.</span></div>
-            <div><b>04</b><strong>Review &amp; report</strong><span>View alerts, history, regional status and submit authenticated field reports.</span></div>
-          </div>
-        </section>
-
-        <section className="landing-disclaimer">
-          <strong>Prototype notice</strong>
-          <span>Risk thresholds and model outputs are intended for demonstration and require validation with representative local landslide records before operational deployment.</span>
-        </section>
-      </main>
-
-      <footer className="landing-footer">SIH26001 • AI-Based Early Warning and Landslide Risk Monitoring System in NER</footer>
-    </div>
-  );
-}
-
-function AuthScreen({ onAuth, onBack, initialMode = "register" }) {
-  const [mode, setMode] = useState(initialMode === "admin" ? "login" : initialMode);
-  const [admin, setAdmin] = useState(initialMode === "admin");
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("register");
+  const [admin, setAdmin] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", aadhaar: "", otp: "", username: "admin", password: "" });
   const [step, setStep] = useState("details");
   const [message, setMessage] = useState("");
@@ -948,26 +864,16 @@ function AuthScreen({ onAuth, onBack, initialMode = "register" }) {
         localStorage.setItem("landslide_token", result.token); onAuth({ ...result }); return;
       }
       fd.append("email", form.email);
-
-      // Registration: send OTP only from the details step.
-      // On the OTP step, verify the existing OTP instead of registering again.
-      if (mode === "register" && step === "details") {
-        fd.append("name", form.name);
-        fd.append("phone", form.phone);
-        fd.append("aadhaar", form.aadhaar);
+      if (mode === "register") {
+        fd.append("name", form.name); fd.append("phone", form.phone); fd.append("aadhaar", form.aadhaar);
         const result = await apiPost("/api/auth/register", fd);
-        setStep("otp");
-        setMessage(result.dev_code ? `Demo verification code: ${result.dev_code}` : "Verification code sent to your email.");
-      } else if (mode === "login" && step === "details") {
+        setStep("otp"); setMessage(result.dev_code ? `Demo verification code: ${result.dev_code}` : "Verification code sent to your email.");
+      } else if (step === "details") {
         const result = await apiPost("/api/auth/request-login-otp", fd);
-        setStep("otp");
-        setMessage(result.dev_code ? `Demo login code: ${result.dev_code}` : "Login code sent to your email.");
+        setStep("otp"); setMessage(result.dev_code ? `Demo login code: ${result.dev_code}` : "Login code sent to your email.");
       } else {
         fd.append("otp", form.otp);
-        const result = await apiPost(
-          mode === "register" ? "/api/auth/verify-email" : "/api/auth/login-otp",
-          fd
-        );
+        const result = await apiPost(mode === "register" ? "/api/auth/verify-email" : "/api/auth/login-otp", fd);
         localStorage.setItem("landslide_token", result.token);
         const me = await apiGet("/api/auth/me");
         onAuth(me);
@@ -976,7 +882,6 @@ function AuthScreen({ onAuth, onBack, initialMode = "register" }) {
   };
 
   return <div className="auth-shell"><div className="auth-card">
-    <button type="button" className="back-link" onClick={onBack}>← Back to website</button>
     <div className="eyebrow">NER DISASTER MANAGEMENT</div>
     <h1>AI Landslide Early Warning</h1>
     <p className="muted">Secure user access, location-based risk monitoring and private field reports.</p>
@@ -1016,52 +921,25 @@ function AdminPage({ auth, onLogout }) {
 function App() {
   const [auth, setAuth] = useState(null);
   const [ready, setReady] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
-
-  useEffect(() => {
-    const handleExpired = () => {
-      localStorage.removeItem("landslide_token");
-      setAuth(null);
-      setShowAuth(true);
-      setAuthMode("login");
-    };
-    window.addEventListener("landslide-auth-expired", handleExpired);
-    return () => window.removeEventListener("landslide-auth-expired", handleExpired);
-  }, []);
-
   useEffect(() => {
     const token = localStorage.getItem("landslide_token");
-    if (!token) {
-      setReady(true);
-      return;
-    }
+    if (!token) { setReady(true); return; }
     apiGet("/api/auth/me")
-      .then((profile) => setAuth(profile))
-      .catch(() => {
-        localStorage.removeItem("landslide_token");
-        setAuth(null);
-      })
+      .then(setAuth)
+      .catch(() => { localStorage.removeItem("landslide_token"); setAuth(null); })
       .finally(() => setReady(true));
   }, []);
 
-  const openAuth = (mode = "login") => {
-    setAuthMode(mode);
-    setShowAuth(true);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("landslide_token");
-    setAuth(null);
-    setShowAuth(false);
-    setAuthMode("login");
-  };
-
+  useEffect(() => {
+    const handleExpired = () => setAuth(null);
+    window.addEventListener("landslide-auth-expired", handleExpired);
+    return () => window.removeEventListener("landslide-auth-expired", handleExpired);
+  }, []);
+  const logout = () => { localStorage.removeItem("landslide_token"); setAuth(null); };
   if (!ready) return <div className="auth-shell"><div className="auth-card">Loading secure access…</div></div>;
-  if (auth?.role === "admin") return <AdminPage auth={auth} onLogout={logout} />;
-  if (auth?.role === "user") return <Dashboard auth={auth} onLogout={logout} />;
-  if (!showAuth) return <LandingPage onOpenAuth={openAuth} />;
-  return <AuthScreen onAuth={setAuth} onBack={() => setShowAuth(false)} initialMode={authMode} />;
+  if (!auth) return <AuthScreen onAuth={setAuth} />;
+  if (auth.role === "admin") return <AdminPage auth={auth} onLogout={logout} />;
+  return <Dashboard auth={auth} onLogout={logout} />;
 }
 
 export default App;

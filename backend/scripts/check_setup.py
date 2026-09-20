@@ -1,14 +1,10 @@
 from pathlib import Path
 import os
 import sys
-
 from sqlalchemy import text
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
-
-from database import SessionLocal, initialize_database  # noqa: E402
-
+from database import SessionLocal, initialize_database
 
 def main():
     initialize_database()
@@ -19,16 +15,10 @@ def main():
         print(f"ADMIN_USERNAME: {'OK' if os.getenv('ADMIN_USERNAME') else 'MISSING'}")
         print(f"ADMIN_PASSWORD: {'OK' if os.getenv('ADMIN_PASSWORD') else 'MISSING'}")
         print(f"DEV_EMAIL_MODE: {os.getenv('DEV_EMAIL_MODE', 'false')}")
-        app_users = db.execute(text("SELECT to_regclass('public.app_users')")).scalar()
-        email_otps = db.execute(text("SELECT to_regclass('public.email_otps')")).scalar()
-        location_count = db.execute(text("SELECT COUNT(*) FROM locations")).scalar()
-        print(f"app_users table: {app_users}")
-        print(f"email_otps table: {email_otps}")
-        print(f"locations: {location_count}")
+        print(f"app_users table: {db.execute(text("SELECT to_regclass('public.app_users')")).scalar()}")
+        print(f"email_otps table: {db.execute(text("SELECT to_regclass('public.email_otps')")).scalar()}")
+        print(f"locations: {db.execute(text("SELECT COUNT(*) FROM locations")).scalar()}")
         print("Setup check complete.")
     finally:
         db.close()
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()

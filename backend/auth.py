@@ -53,48 +53,36 @@ def _extract_dev_code(body: str) -> str | None:
     return match.group(1) if match else None
 
 
-def send_email(to_email: str, subject: str, html: str):
-    import os
+def send_email(to_email: str, subject: str, body: str):
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    username = os.getenv("SMTP_USERNAME")
+    password = os.getenv("SMTP_PASSWORD")
+    sender = os.getenv("SMTP_FROM", username or "")
 
-    if os.getenv("DEV_EMAIL_MODE", "false").lower() == "true":
-        return {
-            "ok": True,
-            "dev_code": _extract_dev_code(html),
-        }
+    # Safe local-demo path: never use this for production.
+    if not all([host, username, password, sender]):
+        if os.getenv("DEV_EMAIL_MODE", "false").lower() == "true":
+            code = _extract_dev_code(body)
+            if not code:
+                raise RuntimeError("DEV_EMAIL_MODE is enabled but no 6-digit OTP was found in the email body.")
+            return {"sent": False, "dev_code": code}
+        raise RuntimeError(
+            "Email service is not configured. For local testing set DEV_EMAIL_MODE=true, "
+            "or configure SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD and SMTP_FROM."
+        )
 
-    try:
-        import resend
-    except ImportError as exc:
-        raise RuntimeError("The resend package is not installed on the backend.") from exc
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to_email
+    msg.set_content(body)
+    with smtplib.SMTP(host, port, timeout=20) as server:
+        server.starttls()
+        server.login(username, password)
+        server.send_message(msg)
+    return {"sent": True}
 
-    api_key = os.getenv("RESEND_API_KEY")
-
-    if not api_key:
-        return {
-            "ok": False,
-            "error": "RESEND_API_KEY is not configured"
-        }
-
-    try:
-        resend.api_key = api_key
-
-        result = resend.Emails.send({
-            "from": "onboarding@resend.dev",
-            "to": [to_email],
-            "subject": subject,
-            "html": html,
-        })
-
-        return {
-            "ok": True,
-            "id": getattr(result, "id", None)
-        }
-
-    except Exception as exc:
-        return {
-            "ok": False,
-            "error": str(exc)
-        }
 
 def generate_otp() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
