@@ -328,6 +328,8 @@ def register_user(
         result = send_email(email, "NER Landslide Alert System - Email Verification", f"Your verification code is valid for 10 minutes.\n\nVerification code: {otp}\n\nUse this code to verify your email.")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if not result.get("ok"):
+        raise HTTPException(status_code=503, detail=result.get("error", "Unable to send the verification email."))
     response = {"status": "verification_sent", "email": email}
     if result.get("dev_code"):
         response["dev_code"] = result["dev_code"]
@@ -379,6 +381,8 @@ def request_login_otp(email: str = Form(...), db: Session = Depends(get_db)):
         result = send_email(email, "NER Landslide Alert System - Login Code", f"Your login verification code is valid for 10 minutes.\n\nVerification code: {otp}")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if not result.get("ok"):
+        raise HTTPException(status_code=503, detail=result.get("error", "Unable to send the login email."))
     response={"status":"login_code_sent","email":email}
     if result.get("dev_code"): response["dev_code"]=result["dev_code"]
     return response
@@ -949,26 +953,3 @@ def ingest_sensor(
           "soil_moisture": soil_moisture, "vibration": vibration, "battery_percent": battery_percent})
     db.commit()
     return {"status": "accepted", "sensor_id": sensor_id, "location_id": location_id}
-@app.post("/api/auth/register")
-def register_user(
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db),
-):
-    # Check if user already exists
-    if db.query(User).filter(User.email == email).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Create new user
-    hashed_password = hash_value(password)
-    user = User(username=username, email=email, hashed_password=hashed_password)
-    db.add(user)
-    db.commit()
-    return {"status": "created", "user_id": user.id}
-@app.get("/api/auth/me")
-def get_current_user(auth=Depends(require_auth), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == auth["user_id"]).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user.id, "username": user.username, "email": user.email}

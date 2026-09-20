@@ -55,7 +55,17 @@ def _extract_dev_code(body: str) -> str | None:
 
 def send_email(to_email: str, subject: str, html: str):
     import os
-    import resend
+
+    if os.getenv("DEV_EMAIL_MODE", "false").lower() == "true":
+        return {
+            "ok": True,
+            "dev_code": _extract_dev_code(html),
+        }
+
+    try:
+        import resend
+    except ImportError as exc:
+        raise RuntimeError("The resend package is not installed on the backend.") from exc
 
     api_key = os.getenv("RESEND_API_KEY")
 
