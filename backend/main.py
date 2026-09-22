@@ -15,6 +15,7 @@ from weather import get_live_weather, get_live_weather_batch
 from ml_service import get_model_status, predict_experimental, train_model
 from satellite import satellite_layer_config
 from auth import hash_value, make_token, read_token
+import hmac
 import os
 def current_auth(authorization: str | None = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -412,7 +413,7 @@ def login_user(
     if not row or not row["password_hash"]:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    if not hmac_compare(hash_value(password), row["password_hash"]):
+    if not hmac.compare_digest(hash_value(password), row["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token = make_token(row["id"], "user", row["email"])
