@@ -849,50 +849,197 @@ const useCurrentLocation = () => {
 function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState("register");
   const [admin, setAdmin] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", aadhaar: "", otp: "", username: "admin", password: "" });
-  const [step, setStep] = useState("details");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    aadhaar: "",
+    password: "",
+    confirmPassword: "",
+    username: "admin",
+  });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
-    e.preventDefault(); setBusy(true); setMessage("");
+    e.preventDefault();
+    setBusy(true);
+    setMessage("");
+
     try {
       const fd = new FormData();
+
       if (admin) {
-        fd.append("username", form.username); fd.append("password", form.password);
+        fd.append("username", form.username);
+        fd.append("password", form.password);
         const result = await apiPost("/api/auth/admin-login", fd);
-        localStorage.setItem("landslide_token", result.token); onAuth({ ...result }); return;
+        localStorage.setItem("landslide_token", result.token);
+        onAuth({ ...result });
+        return;
       }
+
       fd.append("email", form.email);
+      fd.append("password", form.password);
+
       if (mode === "register") {
-        fd.append("name", form.name); fd.append("phone", form.phone); fd.append("aadhaar", form.aadhaar);
+        if (form.password !== form.confirmPassword) {
+          throw new Error("Passwords do not match.");
+        }
+        fd.append("name", form.name);
+        fd.append("phone", form.phone);
+        fd.append("aadhaar", form.aadhaar);
+
         const result = await apiPost("/api/auth/register", fd);
-        setStep("otp"); setMessage(result.dev_code ? `Demo verification code: ${result.dev_code}` : "Verification code sent to your email.");
-      } else if (step === "details") {
-        const result = await apiPost("/api/auth/request-login-otp", fd);
-        setStep("otp"); setMessage(result.dev_code ? `Demo login code: ${result.dev_code}` : "Login code sent to your email.");
+        localStorage.setItem("landslide_token", result.token);
+        onAuth(result);
       } else {
-        fd.append("otp", form.otp);
-        const result = await apiPost(mode === "register" ? "/api/auth/verify-email" : "/api/auth/login-otp", fd);
+        const result = await apiPost("/api/auth/login", fd);
         localStorage.setItem("landslide_token", result.token);
         const me = await apiGet("/api/auth/me");
         onAuth(me);
       }
-    } catch (err) { setMessage(err.message || "Authentication failed."); } finally { setBusy(false); }
+    } catch (err) {
+      setMessage(err.message || "Authentication failed.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return <div className="auth-shell"><div className="auth-card">
-    <div className="eyebrow">NER DISASTER MANAGEMENT</div>
-    <h1>AI Landslide Early Warning</h1>
-    <p className="muted">Secure user access, location-based risk monitoring and private field reports.</p>
-    <div className="auth-tabs"><button className={mode === "register" && !admin ? "active" : ""} onClick={() => {setAdmin(false);setMode("register");setStep("details");}}>New User</button><button className={mode === "login" && !admin ? "active" : ""} onClick={() => {setAdmin(false);setMode("login");setStep("details");}}>User Login</button><button className={admin ? "active" : ""} onClick={() => {setAdmin(true);setStep("details");}}>Admin</button></div>
-    <form onSubmit={submit} className="auth-form">
-      {admin ? <><input value={form.username} onChange={e=>setForm({...form,username:e.target.value})} placeholder="Admin username" required /><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Admin password" required /></> : <>{mode === "register" && step === "details" && <><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Full name" required /><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone number" required /><input value={form.aadhaar} onChange={e=>setForm({...form,aadhaar:e.target.value})} placeholder="Aadhaar number (12 digits)" inputMode="numeric" required /></>}<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email address" required />{step === "otp" && <input value={form.otp} onChange={e=>setForm({...form,otp:e.target.value})} placeholder="6-digit email OTP" inputMode="numeric" required />}</>}
-      <button className="primary-btn" disabled={busy}>{busy ? "Please wait…" : step === "otp" ? "Verify & Continue" : admin ? "Admin Login" : mode === "register" ? "Send Verification Code" : "Send Login Code"}</button>
-    </form>
-    {message && <div className="error-banner">{message}</div>}
-    <small className="muted">Aadhaar is stored only as a one-way hash. This prototype does not claim UIDAI authentication. Email OTP verifies control of the email address.</small>
-  </div></div>;
+  return (
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="eyebrow">NER DISASTER MANAGEMENT</div>
+        <h1>AI Landslide Early Warning</h1>
+        <p className="muted">
+          User access, location-based risk monitoring and private field reports.
+        </p>
+
+        <div className="auth-tabs">
+          <button
+            className={mode === "register" && !admin ? "active" : ""}
+            onClick={() => {
+              setAdmin(false);
+              setMode("register");
+              setMessage("");
+            }}
+          >
+            New User
+          </button>
+          <button
+            className={mode === "login" && !admin ? "active" : ""}
+            onClick={() => {
+              setAdmin(false);
+              setMode("login");
+              setMessage("");
+            }}
+          >
+            User Login
+          </button>
+          <button
+            className={admin ? "active" : ""}
+            onClick={() => {
+              setAdmin(true);
+              setMessage("");
+            }}
+          >
+            Admin
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="auth-form">
+          {admin ? (
+            <>
+              <input
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder="Admin username"
+                required
+              />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Admin password"
+                required
+              />
+            </>
+          ) : (
+            <>
+              {mode === "register" && (
+                <>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Full name"
+                    required
+                  />
+                  <input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="Phone number"
+                    required
+                  />
+                  <input
+                    value={form.aadhaar}
+                    onChange={(e) => setForm({ ...form, aadhaar: e.target.value })}
+                    placeholder="Aadhaar number (12 digits)"
+                    inputMode="numeric"
+                    required
+                  />
+                </>
+              )}
+
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Email address"
+                required
+              />
+
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Password (minimum 8 characters)"
+                minLength={8}
+                required
+              />
+
+              {mode === "register" && (
+                <input
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                  placeholder="Confirm password"
+                  minLength={8}
+                  required
+                />
+              )}
+            </>
+          )}
+
+          <button className="primary-btn" disabled={busy}>
+            {busy
+              ? "Please wait…"
+              : admin
+                ? "Admin Login"
+                : mode === "register"
+                  ? "Create Account"
+                  : "Login"}
+          </button>
+        </form>
+
+        {message && <div className="error-banner">{message}</div>}
+
+        <small className="muted">
+          Email OTP verification has been removed. Passwords are stored as one-way
+          hashes; Aadhaar is stored only as a one-way hash. This prototype does not
+          claim UIDAI authentication.
+        </small>
+      </div>
+    </div>
+  );
 }
 
 function AdminPage({ auth, onLogout }) {
