@@ -14,7 +14,7 @@ from terrain import get_terrain_profile, get_terrain_profiles_batch
 from weather import get_live_weather, get_live_weather_batch
 from ml_service import get_model_status, predict_experimental, train_model
 from satellite import satellite_layer_config
-from auth import hash_value, make_token, read_token, send_email
+from auth import hash_value, make_token, read_token
 import os
 def current_auth(authorization: str | None = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
