@@ -220,9 +220,10 @@ def initialize_database() -> None:
         "CREATE INDEX IF NOT EXISTS idx_citizen_reports_time ON citizen_reports(created_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_road_reports_time ON road_reports(created_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_sensor_location_time ON sensor_observations(location_id, recorded_at DESC)",
-        """CREATE TABLE IF NOT EXISTS app_users (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, email VARCHAR(320) UNIQUE NOT NULL, phone VARCHAR(30), aadhaar_hash VARCHAR(64), email_verified BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+        """CREATE TABLE IF NOT EXISTS app_users (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, email VARCHAR(320) UNIQUE NOT NULL, phone VARCHAR(30), aadhaar_hash VARCHAR(64), password_hash VARCHAR(64), email_verified BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         """CREATE TABLE IF NOT EXISTS email_otps (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE, purpose VARCHAR(30) NOT NULL, otp_hash VARCHAR(64) NOT NULL, expires_at TIMESTAMP NOT NULL, used BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
-        """ALTER TABLE citizen_reports ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES app_users(id)""",
+        """ALTER TABLE citizen_reports ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES app_users(id),
+        "ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(64)"""",
         """CREATE TABLE IF NOT EXISTS warning_email_log (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE, risk_level VARCHAR(20) NOT NULL, location_name VARCHAR(200), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
         "CREATE INDEX IF NOT EXISTS idx_warning_email_user_time ON warning_email_log(user_id, created_at DESC)",
     ]
